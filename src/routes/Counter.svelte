@@ -1,75 +1,106 @@
 <script>
-  import { onMount } from 'svelte';
-  import { hexToRGB, getFileExtension } from './utils';
+	import { spring } from 'svelte/motion';
 
-  let imagePath = '';
-  let targetColor = '';
-  let newColor = '';
+	let count = 0;
 
-  const recolorImage = () => {
-    if (!imagePath || !targetColor || !newColor) {
-      alert('Please fill in all fields.');
-      return;
-    }
+	const displayed_count = spring();
+	$: displayed_count.set(count);
+	$: offset = modulo($displayed_count, 1);
 
-    const img = new Image();
-    img.src = imagePath;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-
-      ctx.drawImage(img, 0, 0);
-
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const pixels = imageData.data;
-
-      const targetRGB = hexToRGB(targetColor);
-      const newRGB = hexToRGB(newColor);
-
-      for (let i = 0; i < pixels.length; i += 4) {
-        const r = pixels[i];
-        const g = pixels[i + 1];
-        const b = pixels[i + 2];
-
-        if (r === targetRGB.r && g === targetRGB.g && b === targetRGB.b) {
-          pixels[i] = newRGB.r;
-          pixels[i + 1] = newRGB.g;
-          pixels[i + 2] = newRGB.b;
-        }
-      }
-
-      ctx.putImageData(imageData, 0, 0);
-
-      const resultImage = canvas.toDataURL();
-
-      const link = document.createElement('a');
-      link.href = resultImage;
-      link.download = `recolored_image.${getFileExtension(imagePath)}`;
-
-      link.click();
-    };
-  };
-
-  onMount(() => {
-    // Initialize the targetColor and newColor fields with default values
-    targetColor = '#FFFFFF'; // Default: White
-    newColor = '#FF0000'; // Default: Red
-  });
+	/**
+	 * @param {number} n
+	 * @param {number} m
+	 */
+	function modulo(n, m) {
+		// handle negative numbers
+		return ((n % m) + m) % m;
+	}
 </script>
 
-<main>
-  <h2>Image Recoloring</h2>
+<div class="counter">
+	<button on:click={() => (count -= 1)} aria-label="Decrease the counter by one">
+		<svg aria-hidden="true" viewBox="0 0 1 1">
+			<path d="M0,0.5 L1,0.5" />
+		</svg>
+	</button>
 
-  <label for="imagePath">Image Path:</label>
-  <input type="text" id="imagePath" bind:value={imagePath} placeholder="Enter image path" />
+	<div class="counter-viewport">
+		<div class="counter-digits" style="transform: translate(0, {100 * offset}%)">
+			<strong class="hidden" aria-hidden="true">{Math.floor($displayed_count + 1)}</strong>
+			<strong>{Math.floor($displayed_count)}</strong>
+		</div>
+	</div>
 
-  <label for="targetColor">Target Color (hex format):</label>
-  <input type="text" id="targetColor" bind:value={targetColor} placeholder="Enter target color" />
+	<button on:click={() => (count += 1)} aria-label="Increase the counter by one">
+		<svg aria-hidden="true" viewBox="0 0 1 1">
+			<path d="M0,0.5 L1,0.5 M0.5,0 L0.5,1" />
+		</svg>
+	</button>
+</div>
 
-  <label for="newColor">New Color (hex format):</label>
-  <input type="text" id="newColor" bind:value={newColor} placeholder="Enter new color" />
+<style>
+	.counter {
+		display: flex;
+		border-top: 1px solid rgba(0, 0, 0, 0.1);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+		margin: 1rem 0;
+	}
 
-  <button on:click={recolorImage}>Recolor Image</button>
-</main>
+	.counter button {
+		width: 2em;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border: 0;
+		background-color: transparent;
+		touch-action: manipulation;
+		font-size: 2rem;
+	}
+
+	.counter button:hover {
+		background-color: var(--color-bg-1);
+	}
+
+	svg {
+		width: 25%;
+		height: 25%;
+	}
+
+	path {
+		vector-effect: non-scaling-stroke;
+		stroke-width: 2px;
+		stroke: #444;
+	}
+
+	.counter-viewport {
+		width: 8em;
+		height: 4em;
+		overflow: hidden;
+		text-align: center;
+		position: relative;
+	}
+
+	.counter-viewport strong {
+		position: absolute;
+		display: flex;
+		width: 100%;
+		height: 100%;
+		font-weight: 400;
+		color: var(--color-theme-1);
+		font-size: 4rem;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.counter-digits {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+	}
+
+	.hidden {
+		top: -100%;
+		user-select: none;
+	}
+</style>
